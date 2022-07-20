@@ -274,3 +274,19 @@ TSWLatexianTemp*
 
 # Makeindex log files
 *.lpz
+
+
+# Created by editors
+*~
+\#*
+\.\#*
+*.swp
+
+#Create by VSCode
+*.vscode*
+
+# mac os
+*.DS_Store
+
+# Jupyter Notebook
+.ipynb_checkpoints
