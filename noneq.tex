@@ -1,0 +1,518 @@
+% !TEX TS-program = latexmk
+
+% partial fixes for ``cannot redefine operator''
+\let\negmedspace\undefined
+\let\negthickspace\undefined
+\RequirePackage{amsmath} 
+
+\documentclass[notitlepage,openany,11pt]{report}
+%\documentclass[11pt,oneside]{amsart}
+\usepackage[pdftex,letterpaper,
+total={5.75in, 9in},left=0.75in,marginparwidth=1.25in]{geometry}
+\usepackage[pdftex]{graphicx}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% fonts and encoding
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel} % hyphenation etc.
+\usepackage{csquotes}%
+\usepackage{newtxtext,newtxmath}
+% \usepackage{times} % times font for text, not equations
+\usepackage{microtype} % kerning
+
+% math
+\let\Bbbk\relax
+\let\openbox\relax
+%\usepackage{amsmath} % math
+\usepackage{amsfonts,amssymb,amsthm}
+\usepackage{bm}
+\DeclareMathOperator{\Tr}{Tr}
+\DeclareMathOperator{\var}{var}
+\DeclareMathOperator{\cov}{cov}
+
+% other packages
+\usepackage{adjmulticol} % 2-col for biblio
+\usepackage{indentfirst}
+\usepackage{enumitem}
+\setlist{noitemsep}
+\usepackage{tabularx}
+\usepackage{marginnote}
+\renewcommand*{\marginfont}{\footnotesize}
+
+% Draw box around projects
+\usepackage{framed}
+\theoremstyle{plain}% default
+\newtheorem{notethm}{Speculation}
+\newenvironment{notebox}
+    {\noindent\colorlet{shadecolor}{cyan!15}\begin{shaded}\begin{notethm}}
+    {\end{notethm}\end{shaded}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% chapter/section headings
+
+\usepackage{sectsty} % reduce font size for chapter headers
+\chapterfont{\LARGE}
+\chapternumberfont{\LARGE}
+\chaptertitlefont{\LARGE}
+\sectionfont{\Large}
+\subsectionfont{\large}
+\subsubsectionfont{\normalsize}
+\usepackage[titles]{tocloft}
+\renewcommand{\cftchapfont}{\normalfont\bfseries}% titles in bold
+\renewcommand{\cftsecfont}{\normalfont\bfseries}% titles in bold
+\renewcommand{\cftsecpagefont}{\normalfont\bfseries}% page numbers in bold
+% \renewcommand{\cftdotsep}{1}
+
+% Number subsubsections for references, but don't put them in the TOC
+\setcounter{secnumdepth}{3} 
+\setcounter{tocdepth}{2}
+ 
+% Number subsubsections for references, but don't put them in the TOC
+% don't number chapters in order to keep TOC, text refs manageable
+\newcommand{\nonumberchapter}[1]{%
+    %\setcounter{section}{0}
+    \chapter*{#1}
+    \vspace{-20pt}
+    \addcontentsline{toc}{chapter}{#1}
+}
+\renewcommand{\thesection}{\arabic{section}}
+\newcommand{\nonumbersection}[1]{%
+    \setcounter{subsection}{0}
+    \section*{#1}
+    \addcontentsline{toc}{section}{#1}
+}
+\numberwithin{equation}{section}
+
+% put TOC on title page, 
+% https://tex.stackexchange.com/questions/45861/toc-on-the-title-page-in-a-report
+\makeatletter
+\newcommand*{\toccontents}{\@starttoc{toc}}
+\makeatother
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Biblio
+
+\usepackage[square,numbers,sort&compress]{natbib} % ,merge,elide
+
+\usepackage{xcolor}
+\definecolor{darkred}{rgb}{0.45,0.,0.}
+\definecolor{darkgreen}{rgb}{0.,0.45,0.}
+\definecolor{darkblue}{rgb}{0.,0.,0.5}
+
+\usepackage[hyphens,obeyspaces]{url}
+\usepackage[%
+    breaklinks,colorlinks=true,
+    linkcolor=darkred,citecolor=darkgreen,urlcolor=darkblue,
+    backref=page
+]{hyperref}
+% \hypersetup{backref=page} % needs to be specified post-load?
+\usepackage{hypernat} % after hyperref and natbib
+%\PassOptionsToPackage{hyphens,obeyspaces}{url}
+\usepackage{doi} % needs to be after hyperref and url?
+
+
+% Eliminate ``References'' header from \bibliography since
+% we put that in manually, because we want it in TOC
+\renewcommand{\bibsection}{}
+
+% Don't complain about exported language=en tags in biblio
+% https://tex.stackexchange.com/a/199299
+\makeatletter
+\let\ORIbbl@fixname\bbl@fixname
+\def\bbl@fixname#1{%
+    \@ifundefined{languagealias@\expandafter\string#1}
+        {\ORIbbl@fixname#1}
+        {\edef\languagename{\@nameuse{languagealias@#1}}}%
+}
+\newcommand{\definelanguagealias}[2]{%
+    \@namedef{languagealias@#1}{#2}%
+}
+\makeatother
+\definelanguagealias{en}{english}
+\definelanguagealias{en-US}{english}
+
+% patch backref option to link to line of citation
+% must be applied after hyperref loaded w/appropriate backref option
+% ``merge'' option for natbib still broken, though.
+% From https://tex.stackexchange.com/a/67852, see there for comments
+
+% If there are multiple cites on the same page, should we show only the
+% first one or should we show them all?
+\newif\ifbackrefshowonlyfirst
+\backrefshowonlyfirsttrue % or false
+
+\makeatletter
+\let\BR@direct@old@hyper@natlinkstart\hyper@natlinkstart
+\renewcommand*{\hyper@natlinkstart}{\phantomsection\BR@direct@old@hyper@natlinkstart}%
+\let\BR@direct@oldBR@citex\BR@citex
+\renewcommand*{\BR@citex}{\phantomsection\BR@direct@oldBR@citex}%
+
+\long\def\hyper@page@BR@direct@ref#1#2#3{\hyperlink{#3}{#1}}
+
+\ifx\backrefxxx\hyper@page@backref
+    \let\backrefxxx\hyper@page@BR@direct@ref
+    \ifbackrefshowonlyfirst
+        %\let\backrefxxxdupe\hyper@page@backref%
+        \newcommand*{\backrefxxxdupe}[3]{#1}%
+    \fi
+\else
+    \ifbackrefshowonlyfirst
+        \newcommand*{\backrefxxxdupe}[3]{#2}%
+    \fi
+\fi
+\RequirePackage{etoolbox}
+\patchcmd{\Hy@backout}{Doc-Start}{\@currentHref}{}{\errmessage{I can't patch backref}}
+\makeatother
+
+% Add text to bibitem explaining what backrefs are doing
+% from https://tex.stackexchange.com/a/397886
+\renewcommand\backreftwosep{, }
+\renewcommand\backrefsep{, }
+\renewcommand*{\backrefalt}[4]{%
+    \ifcase #1%
+        \or Cited on~p.~#2.%
+        \else Cited on~pp.~#2.%
+    \fi%
+}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{document}
+
+\newcommand {\be}{\begin{equation*}}
+\newcommand {\ee} {\end{equation*}}
+\newcommand{\boldref}[1]{\textbf{\ref{#1}}}
+\newcommand{\boldnameref}[1]{\textbf{\nameref{#1}}}
+
+\newcommand{\mbf}[1]{\mathbf{#1}}
+\newcommand{\mbb}[1]{\mathbb{#1}}
+\newcommand{\mcal}[1]{\mathcal{#1}}
+\newcommand{\mtilde}[1]{\widetilde{#1}}
+\newcommand{\mhat}[1]{\widehat{#1}}
+\newcommand{\mol}[1]{\overline{#1}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\title{Background on nonequilibrium stat mech, chaotic dynamics and effective theories}
+\author{Tom Jackson}
+%\email[]{Your e-mail address}
+%\affiliation{}
+
+\hypersetup{pageanchor=false} % fix hyperref error: https://tex.stackexchange.com/a/331766
+
+%\begin{titlepage}
+\newgeometry{total={5.75in, 9in}} % https://stackoverflow.com/questions/1670463
+\maketitle
+
+\begin{abstract}
+This is a (disorganized) summary writeup on with pointers to literature I've compiled for my own use.\end{abstract}
+
+\hypersetup{pageanchor=true}
+\pagenumbering{arabic}
+
+%\addtocontents{toc}{\vspace{-10pt}}
+%\tableofcontents
+\toccontents
+
+\restoregeometry
+
+%\end{titlepage}
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\chapter{Coarse-graining --- non-RG}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Koopman}
+
+\subsection{Definition}
+Koopman-von Neumann formalism proposed as classical analogue of quantum time evolution operator:
+\be
+\langle x |e^{iHt/\hbar} | y \rangle \sim \mcal{K}_t(x,y).
+\ee 
+Acts \emph{linearly} on Hilbert space of observables $a(x)$, not system state $x$ directly.
+\be
+\mcal{K}_t(x,y) = \delta(y - f_t(x)); \qquad [\mcal{K}_t a](x) = a(f_t(x)),
+\ee
+where $f_t(x)$ denotes the forward time evolution starting from state $x$. The operators $\mcal{K}_t$ form a one-parameter semigroup in $t$.
+
+It's the adjoint (not inverse) of Perron-Frobenius operator $\mcal{L}$, in terms of evolving probability densities:
+\be
+\int_{M} \! dx \, [\mcal{K}_t a](x) \rho(x) = \int_{M} \! dy \, a(y) [\mcal{L}_t \rho](x).
+\ee
+Right eigenvectors of PF are left eigenvectors of Koopman, and vice-versa. Perron-Frobenius, by virtue of acting on $\rho$, is taking about a bundle of trajectories. Koopman talking about one single trajectory. Note that the ``state space'' $M$ is very arbitrary and could be, e.g., a fractal attractor.
+
+\emph{If} we knew eigendecomposition of Koopman, we could compute time evolution of any observable. Other statements about its spectrum:
+\begin{itemize} \itemsep -1pt
+\item The constant function on $M$ is always an eigenfunction with eigenvalue 1. If this is the only eigenfunction with this eigenvalue, the system is ergodic (time averages are $M$-averages).
+\end{itemize}
+
+
+\subsection{Local vs. global}
+Stuff by Page and Kerswell on convergence.
+
+\subsection{Mode decompositions}
+Linearity of $\mcal{K}$ means learning from data is a convex optimization problem, which we might hope is tractable.
+
+Obstacles to tractable approximations: $\mcal{K}$ may not have eigenvalues (other than 1) and is not compact.
+
+Could try projecting $\mcal{K}$ onto a finite-dimensional subspace; if an eigenvector (or invariant subspace) of full $\mcal{K}$ lies in the subspace, it'll be an invariant of the projection too. Don't know a good subspace, though, and also need some regularization (since even point spectrum may be dense.)
+
+\subsubsection{Ulam's method} Impose a disjoint partitioning of state space, and compute Markov transition matrix between partitions induced by dynamics; this approximates PF. Basis functions are indicators on partitions; regularization by small phase-space diffusion. 
+
+Problem is required number of partitions grows exponentially with phase space dimension.
+
+\subsubsection{(E)DMD} Choose a basis (``dictionary'') of observables $\psi_{i}$ with Gram matrix $G = \langle \psi_{i}, \psi_{j} \rangle$; formally Koopman matrix is $K_{ij} = \langle \psi_{i}, \mcal{K} \psi_{j} \rangle$; so formally Koopman projection (in least-squares sense) is $G^{+} K$, where we took the Moore-Penrose pseudoinverse.
+
+We can't evaluate $\langle \psi_{i}, \mcal{K} \psi_{j} \rangle$. Instead we proceed by a data-driven approximation: we assume we have access to dynamical snapshots of the observables $\psi_{i} (x_{n})$, along with their time-stepped counterparts $\psi_{i} (Tx_{n})$, for a large number of system states. This defines an empirical inner product $(f,g) = \frac{1}{N} \sum_{n} f^{\dagger}(x_{n}) g(x_{n})$, allowing the projection to be evaluated. 
+
+Can show this converges to the real inner product as $N \rightarrow \infty$ if the system is ergodic, or if the states $\{ x_{n} \}$ are sampled from the dynamical invariant measure. Spectrum of projected Koopman does \emph{not} converge to that of $\mcal{K}$, but claim weak convergence if all $\{\psi_{i}\}$ are orthonormal.
+
+Frequently regularize by doing PCA on $G$. 
+
+Original DMD chose $\psi_{i}$ to be state variables. Can extend this by augmenting basis with powers or other nonlinear functions of state variables. Can also use time-delayed copies of observables (cf. Takens embedding). 
+
+``One may also use an implicit basis determined by a kernel function (28), in which case the (possibly infinite-dimensional) space of observables is the corresponding reproducing kernel Hilbert space.''
+
+kernel DMD; Hankel DMD
+
+\subsubsection{Neural methods: autoencoder}
+
+\subsubsection{Neural methods: manifold learning}
+For ergodic systems specifically; claim work even with chaotic spectrum? Need observational timeseries long enough to probe ergodic timescale. 
+
+
+
+
+\section{Mori-Zwanzig}
+
+\subsection{Relation to Koop}
+Ref: Mezic appendix in ``geometry and learning.''
+
+Have space of observables $\{ a_{i} \}$ and orthogonal projection $P$ onto it; $Q$ is the complement. 
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\chapter{Renormalization group}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
+\section{RG background}
+
+\subsection{Conventional overview}
+
+\subsubsection{Terminology}
+Couplings in $\mcal{L}$ as ``coordinates on theory space.'' Scattering amplitudes; partition function; free energy. 
+
+Feynman diagrams as a weak-coupling perturbation series around a noninteracting theory. Expansion in number of loops equivalent to expanding action in powers of $\hbar$ (argument?)
+
+\subsubsection{Gell-Man-Low version} 
+
+Take scalar $\phi^{4}$ theory for simplicity. Loop integrals diverge, so require regularization parameterized by $\Lambda$. Then have scattering amplitude $\Gamma^{(4)} = \Gamma^{(4)}(\{\mbf{k}_{\text{ext}}\}; \lambda_{0}, \Lambda)$. In particular, couplings gain \textit{scale dependence} on the magnitude of the external momenta with which we probe them.
+
+\begin{enumerate}
+\item ``Bare'' couplings $\{\lambda_{0}\}$ are unobservable: we instead can only measure the infinite sum of diagrams making up each proper vertex $\Gamma^{(n)}$ at external reference momenta $\mbf{k}_{P}$; for simplicity refer scale of these momenta to a scale $\mu$. 
+
+This observational data provides \textit{normalization conditions} defining physical couplings $\lambda_{P} (\mbf{k}_{P})$.
+
+
+\item Regularization is unphysical and artificial, so physical observables can't depend on $\Lambda$. This isn't a problem, because as argued in the previous point the couplings $\lambda_{0}$ are physically unobservable as well. 
+
+So the preceding notation is misleading: we need to make $\lambda_{0}$ dependent on $\Lambda$ in such a way that overall $\Lambda$-dependence of physical quantities vanishes. Do this in the context of the diagrammatic expansion by introducing \textit{counterterms} for $\lambda_{0}$.
+
+
+\item Combining these, a sufficient set of normalization conditions fixes all counterterms at a given order in perturbation theory, up to finite parts: this is the \textit{cancellation of divergences} in old-style terminology. 
+\begin{equation}
+\lambda_{P}(\mu) = \lambda_{0} - 3c \lambda_{0}^{2} \log\left( \frac{\Lambda^2}{\mu^2} \right) + \ldots,
+\end{equation}
+which can be expressed as the RG flow equation 
+\begin{equation}
+\mu \frac{d}{d\mu}\lambda_{P}(\mu) =6c \lambda_{P}^{2}(\mu) + \ldots.
+\end{equation}
+
+\end{enumerate}
+
+
+
+BHPZ version is just that counterterms can be constructed diagram-by-diagram. 
+
+Ambiguity in finite part of counterterms describes our freedom to choose a regularization scheme, i.e. to choose $\Lambda$.
+
+Bring in power-counting. A ``nonrenormalizable'' theory requires an infinite number of conditions to fix counterterms: conditions in 1-1 correspondence with naively divergent terms in initial $\mcal{L}$.
+
+
+\subsubsection{Wilsonian version} 
+
+
+
+
+\subsubsection{Exact RG}
+\cite{Gaite:04}
+
+Coarse-grain fields by convolution with a smoothing filter of scale $\Lambda$: $\phi_{\Lambda} (k) = K_{\Lambda}(k) \phi(k)$. Gaussian part of the theory just picks up $G_{\Lambda} = K_{\Lambda}^{2}G$. Non-Gaussian part evolves according to a functional Fokker-Planck:
+\be
+\frac{\partial}{\partial \Lambda} e^{-V_{\Lambda}} = \frac{1}{2} \frac{\partial G_{\Lambda}}{\Lambda} \frac{\delta^{2}}{\delta^{2} \phi_{\Lambda}^{2}} e^{-V_{\Lambda}};
+\ee
+$V_{\Lambda}$ is the smoothed effective potential (so transforming 1PI $\Gamma$?). Can also accommodate Gaussian part in a single equation.
+
+Argues for a stochastic approach to RG, since we throw away information both in truncating the exact RG and in coarse-graining field configurations; ideally these would be coupled, so that we (progressively?) truncate coupling constants ``governing'' small-scale degrees of freedom.
+
+
+
+\section{RG: new directions}
+
+\subsection{Jona-Lasinio}
+
+\subsection{Langevin simulations}
+For a generic action $S[\phi]$, Langevin dynamics are
+\be
+\partial_{t} \phi_{i} = \frac{\delta S}{\delta \phi_{i}} + \eta_{i}(t).
+\ee
+Associated Fokker-Planck is
+\be
+\partial_{t} P(\phi,t) = \frac{\delta}{\delta \phi_{i}} \left[ -\frac{\delta S}{\delta \phi_{i}} P + \frac{\delta P}{\delta \phi_{i}} \right],
+\ee
+with a unique stationary solution given by the Boltzmann weight $P \propto \exp S$. 
+
+For numerics, we need to discretize the Langevin equation with as large a timestep as possible. Interpret a noninfinitesimal step as leading to an exact solution for an action with modified couplings.
+
+
+\subsection{Caticha: Changes of variables}
+\cite{Caticha:17}
+
+
+\subsection{Goldenfeld-Oono}
+
+\subsection{Mitter: RG as Bellman}
+\cite{Mitter:89}
+
+Linear parabolic equation
+\be
+dp(x,t) = \mhat{L}^{\dagger}p + \frac{1}{\varepsilon} V(x,t) p,
+\ee
+where $\mhat{L}^{\dagger}$ is the formal adjoint of the diffusion operator 
+\be
+\mhat{L} = \sum_{i} f_{i}(x) \partial_{i} + \frac{\varepsilon}{2} \partial_{i}^{2}.
+\ee
+Initial condition $p(t=0) \propto \exp[ - S_{0}(x)/\varepsilon]$. $\varepsilon >0$ is some singular perturbing parameter.
+
+Make the transformation $S(x,t) = -\varepsilon \log p(x,t)$, then $S$ satisfies a Hamilton-Jacobi-Bellman equation
+\be
+\partial_{t} S - \frac{\varepsilon}{2} \Delta S + H[\nabla S] = 0;
+\ee
+where $H[p] = p'f(x) + \frac{1}{2} |p|^{2} - V$. Formal $\varepsilon \to 0$ limit is a Hamilton-Jacobi equation $\partial_{t} S + H[\nabla S] = 0$. Recall the definition of that; canonical momenta $p_{i} = \partial_{i}S$, where ``Hamilton's principal function'' is the action (up to a constant) $S(x,t) = \int_{\gamma} \! d\tau \mcal{L}$, where $\gamma$ is the extremizing trajectory of the Euler-Lagrange equations going from the initial conditions to a configuration $x$ at time $t$.
+
+Claim the $\varepsilon \to 0$ limit of $S$ is the value function $J$ of a deterministic optimal control problem:
+\be
+J(t,u,x_{0}) = S_{0}(x_{0}) + \frac{1}{2} \int^{t} |u(s)|^{2} \, ds; \\
+\ee
+$S$ is the minimal (under what?) $J$ satisfying $\frac{dx}{ds} = f[x(s)] + u(s)$ when $u(s)$ is taken over trajectories connecting the initial condition to $x$ at time $t$.
+
+When $\varepsilon \to 0$, claim $S$ has the same interpretation, but for a stochastic control problem.
+
+
+
+
+
+
+\section{Disorganized speculation}
+RG flow analogous to dynamics of particles in a filter. Same notion of solving for a fixed point ``incrementally'' via a dynamical system.
+
+Have exact RG, in a full functional space, and its natural truncation in terms of relevant/irrelevant ops. Can we use that?
+
+Understand how exact RG is a Fokker-Planck. Understand how (doubled?) Fokker-Planck gives us Schrodinger. [so is ERGE saying something about ground-state wavefunctional??]
+
+Ref in Mitter 1989 of Hamilton-Jacobi-Bellman arising from RG.
+
+
+
+
+Are particles doing something deeper than providing a finite-D truncation of a function space (that of distributions, via sampling?) Is it Nelson's stochastic QM?
+Can we do better with another representation of distributions (as diffeomorphisms) on function spaces? Could we use (wavelet-style) normalizing flows?
+
+MacKay remark in MCMC with ``sampling as a lossy channel.''
+
+\subsubsection{sidebar}
+Can we use info-theoretic ideas to regularize the function space? E.g. discretization according to KL divergence, or our vague notion of ``Bayesian distinguishability'' via a finite number of samples.
+
+``KS, other nonparametric tests have poor small-sample efficiency.'' But we want this to be a feature.
+Wikipedia: \href{https://en.wikipedia.org/wiki/Kolmogorov\%E2\%80\%93Smirnov_test}{K-S test}, 
+\href{https://en.wikipedia.org/wiki/Anderson\%E2\%80\%93Darling_test}{Anderson-Darling test},
+\href{https://en.wikipedia.org/wiki/Donsker\%27s_theorem}{Donsker's Theorem},
+\href{https://en.wikipedia.org/wiki/Minimum-distance_estimation}{Minimum-distance estimation}.
+Other metrics: \href{https://en.wikipedia.org/wiki/Total_variation_distance_of_probability_measures}{total variation},
+\href{https://en.wikipedia.org/wiki/Wasserstein_metric}{Wasserstein/earth-mover},
+\href{https://en.wikipedia.org/wiki/Jensen\%E2\%80\%93Shannon_divergence}{Jensen-Shannon},
+\href{https://en.wikipedia.org/wiki/L\%C3\%A9vy\%E2\%80\%93Prokhorov_metric}{L\'{e}vy-Prokhorov}; \href{https://stats.stackexchange.com/questions/9311/kullback-leibler-vs-kolmogorov-smirnov-distance?rq=1}{KL divergence vs KS distance}.
+
+``A distribution-free multivariate Kolmogorov?Smirnov goodness of fit test has been proposed by Justel, Pe\~{n}a and Zamar (1997).[22] The test uses a statistic which is built using Rosenblatt's transformation, and an algorithm is developed to compute it in the bivariate case. An approximate test that can be easily computed in any dimension is also presented.''
+https://academic.oup.com/mnras/article/451/3/2610/1186451
+https://www.sciencedirect.com/science/article/pii/S0047259X03000794?via%3Dihub
+https://www.sciencedirect.com/science/article/pii/S0047259X97916729?via%3Dihub
+
+https://stats.stackexchange.com/questions/67341/what-are-some-bayesian-alternatives-to-the-kolmogorov-smirnov-test
+https://arxiv.org/abs/0910.5060
+
+
+
+\subsection{versus filtering}
+
+Fokker-Planck connected to Langevin dynamics, Feynman-Kac path integral (before we get to Nelson stuff).
+Goldenfeld book chapter on RG for nonlinear diffusion, but where's our nonlinearity?
+
+Other refs on optimal transport.
+
+What's the notion of ``RG scale'' in filtering?
+
+
+
+\subsection{How do we use it?}
+How can we bring this to problems we want to solve? 1) expensive forward model dynamics 2) particles expensive as a consequence; number of particles much less than number of variables 3) crappy covariance estimates for ensemble KF as a result.
+
+What if we make further constraining assumptions on forward model, e.g. that dynamics given my a least-action or other optimum principle?
+
+``multi-object tracking'' = efficiently approx general distribution as mixture of gaussians?
+Although that would be similar to applying a RBF estimator to a bunch of particles.
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% References
+
+\clearpage
+\newgeometry{total={5.75in, 9in}} % https://stackoverflow.com/questions/1670463
+% \section{References}
+
+% reduce spacing between bibliography items
+\let\oldthebibliography=\thebibliography
+\let\endoldthebibliography=\endthebibliography
+\renewenvironment{thebibliography}[1]{%
+    \begin{oldthebibliography}{#1}%
+    \setlength{\parskip}{3pt plus 2pt minus 1pt}%
+    \setlength{\itemsep}{3pt}%
+}%
+{%
+    \end{oldthebibliography}%
+}
+
+% put biblio in small text, 2-column environment
+\begin{adjmulticols*}{2}{-2cm}{-1.5cm}[\section*{References}] % expand margins
+
+\noindent
+%\begin{adjmulticols}{2}{-2cm}{-2cm} % expand margins
+\footnotesize %\small %
+\begin{flushleft}
+\bibliographystyle{alphaurl}
+\bibliography{rg-filtering}
+%\printbibliography
+\end{flushleft}
+\normalsize
+
+\end{adjmulticols*}
+
+\end{document}
